@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trophy, Plus, Minus, X, ChevronLeft, ChevronRight, Play, Check, ArrowRight, Users, Activity } from 'lucide-react';
 
@@ -447,7 +446,7 @@ const Index = () => {
     );
   }
 
-  // Match Scoring View
+  // Match Scoring View with automatic complementary scoring
   if (selectedMatch) {
     const match = matches.find(m => m.id === selectedMatch);
     if (!match) return null;
@@ -461,10 +460,15 @@ const Index = () => {
           
           if (team === 1) {
             newMatch.team1.score = score;
+            // Automatically calculate the complementary score for team 2
+            newMatch.team2.score = scoreLimit - score;
           } else {
             newMatch.team2.score = score;
+            // Automatically calculate the complementary score for team 1
+            newMatch.team1.score = scoreLimit - score;
           }
           
+          // Mark match as finished when any team reaches the score limit
           if (newMatch.team1.score === scoreLimit || newMatch.team2.score === scoreLimit) {
             newMatch.status = 'finished';
             updatePlayerStats(newMatch);
@@ -798,7 +802,7 @@ const Index = () => {
     );
   }
 
-  // Standings View
+  // Standings View - Fixed TypeScript errors and functionality
   if (showStandings) {
     const allPlayerStats = { ...playerStats };
     players.forEach(player => {
@@ -808,8 +812,15 @@ const Index = () => {
     });
 
     const sortedPlayers = Object.entries(allPlayerStats)
-      .sort(([,a], [,b]) => b.points - a.points)
-      .map(([player, stats]) => ({ player, ...stats }));
+      .sort(([,a], [,b]) => {
+        const aStats = a as { points: number; played: number; won: number; lost: number };
+        const bStats = b as { points: number; played: number; won: number; lost: number };
+        return bStats.points - aStats.points;
+      })
+      .map(([player, stats]) => ({ 
+        player, 
+        ...(stats as { points: number; played: number; won: number; lost: number })
+      }));
 
     const currentRoundMatches = matches.filter(m => m.round === currentRound);
     const allMatchesFinished = currentRoundMatches.length > 0 && currentRoundMatches.every(m => m.status === 'finished');
