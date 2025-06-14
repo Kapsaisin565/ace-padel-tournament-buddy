@@ -180,16 +180,11 @@ const Index = () => {
 
   // Proceed to next round
   const nextRound = () => {
-    const currentRoundMatches = matches.filter(m => m.round === currentRound);
-    const allFinished = currentRoundMatches.length > 0 && currentRoundMatches.every(m => m.status === 'finished');
-    
-    if (allFinished) {
-      const nextRoundNumber = currentRound + 1;
-      setCurrentRound(nextRoundNumber);
-      const nextMatches = generatePairings(nextRoundNumber);
-      setMatches([...matches, ...nextMatches]); // Keep all matches for history
-      setShowStandings(false);
-    }
+    const nextRoundNumber = currentRound + 1;
+    setCurrentRound(nextRoundNumber);
+    const nextMatches = generatePairings(nextRoundNumber);
+    setMatches([...matches, ...nextMatches]); // Keep all matches for history
+    setShowStandings(false);
   };
 
   // Welcome Screen
@@ -683,11 +678,10 @@ const Index = () => {
     );
   }
 
-  // Tournament Main View
+  // Tournament Main View - Updated to always show Next Round button
   if (currentStep === 'tournament') {
     const currentMatches = matches.filter(m => m.round === currentRound);
     const finishedMatches = currentMatches.filter(m => m.status === 'finished').length;
-    const allFinished = currentMatches.length > 0 && currentMatches.every(m => m.status === 'finished');
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -782,41 +776,38 @@ const Index = () => {
 
           {/* Action Buttons */}
           <div className="space-y-4">
-            {allFinished ? (
-              <button
-                onClick={nextRound}
-                className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
-              >
-                Next Round ({currentRound + 1})
-                <ArrowRight size={20} />
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowStandings(true)}
-                className="w-full py-5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-3 border border-white/20 backdrop-blur-lg"
-              >
-                View Current Standings
-                <Trophy size={20} />
-              </button>
-            )}
+            {/* Always show Next Round button */}
+            <button
+              onClick={nextRound}
+              className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
+            >
+              Next Round ({currentRound + 1})
+              <ArrowRight size={20} />
+            </button>
+            
+            <button
+              onClick={() => setShowStandings(true)}
+              className="w-full py-5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-3 border border-white/20 backdrop-blur-lg"
+            >
+              View Current Standings
+              <Trophy size={20} />
+            </button>
             
             {/* Next Match Button */}
-            {!allFinished && (
-              <button
-                onClick={() => {
-                  // Find the next unfinished match
-                  const nextMatch = currentMatches.find(m => m.status !== 'finished');
-                  if (nextMatch) {
-                    setSelectedMatch(nextMatch.id);
-                    setShowScorePicker(null);
-                  }
-                }}
-                className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-xl transform hover:scale-[1.02]"
-              >
-                <Play size={20} />
-                Next Match
-              </button>
-            )}
+            <button
+              onClick={() => {
+                // Find the next unfinished match
+                const nextMatch = currentMatches.find(m => m.status !== 'finished');
+                if (nextMatch) {
+                  setSelectedMatch(nextMatch.id);
+                  setShowScorePicker(null);
+                }
+              }}
+              className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-xl transform hover:scale-[1.02]"
+            >
+              <Play size={20} />
+              Next Match
+            </button>
           </div>
         </div>
       </div>
@@ -902,28 +893,26 @@ const Index = () => {
             ))}
           </div>
 
-          {allMatchesFinished ? (
+          {/* Always show button to go to next round or back to matches */}
+          <div className="mt-8 space-y-4">
             <button
               onClick={nextRound}
-              className="w-full mt-8 py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
+              className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
             >
               Start Round {currentRound + 1}
               <ArrowRight size={20} />
             </button>
-          ) : (
-            <div className="mt-8 text-center">
-              <p className="text-slate-400 mb-6 text-lg">Complete all matches to proceed to next round</p>
-              <button
-                onClick={() => {
-                  setShowStandings(false);
-                  setShowScorePicker(null);
-                }}
-                className="px-8 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-medium transition-all duration-200 border border-white/20 backdrop-blur-lg"
-              >
-                Back to Matches
-              </button>
-            </div>
-          )}
+            
+            <button
+              onClick={() => {
+                setShowStandings(false);
+                setShowScorePicker(null);
+              }}
+              className="w-full px-8 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-medium transition-all duration-200 border border-white/20 backdrop-blur-lg"
+            >
+              Back to Current Round
+            </button>
+          </div>
         </div>
       </div>
     );
