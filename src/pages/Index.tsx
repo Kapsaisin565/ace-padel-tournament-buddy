@@ -706,7 +706,7 @@ const Index = () => {
             </div>
             <button 
               onClick={() => setShowStandings(true)}
-              className="bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all duration-200 flex items-center gap-2 transform hover:scale-105 shadow-xl"
+              className="bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all duration-200 flex items-center gap-2 transform hover:scale-105 shadow-xl cursor-pointer"
             >
               <Trophy size={18} />
               Standings
@@ -780,23 +780,44 @@ const Index = () => {
             ))}
           </div>
 
-          {allFinished ? (
-            <button
-              onClick={() => setShowStandings(true)}
-              className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 animate-pulse shadow-2xl transform hover:scale-[1.02]"
-            >
-              View Standings & Continue
-              <Trophy size={20} />
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowStandings(true)}
-              className="w-full py-5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-3 border border-white/20 backdrop-blur-lg"
-            >
-              View Current Standings
-              <Trophy size={20} />
-            </button>
-          )}
+          {/* Action Buttons */}
+          <div className="space-y-4">
+            {allFinished ? (
+              <button
+                onClick={nextRound}
+                className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
+              >
+                Next Round ({currentRound + 1})
+                <ArrowRight size={20} />
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowStandings(true)}
+                className="w-full py-5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-3 border border-white/20 backdrop-blur-lg"
+              >
+                View Current Standings
+                <Trophy size={20} />
+              </button>
+            )}
+            
+            {/* Next Match Button */}
+            {!allFinished && (
+              <button
+                onClick={() => {
+                  // Find the next unfinished match
+                  const nextMatch = currentMatches.find(m => m.status !== 'finished');
+                  if (nextMatch) {
+                    setSelectedMatch(nextMatch.id);
+                    setShowScorePicker(null);
+                  }
+                }}
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-xl transform hover:scale-[1.02]"
+              >
+                <Play size={20} />
+                Next Match
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
