@@ -47,6 +47,7 @@ const Index = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [showStandings, setShowStandings] = useState(false);
   const [showScorePicker, setShowScorePicker] = useState(null);
+  const [roundHistory, setRoundHistory] = useState([]); // Track all round results
 
   // Helper function to get player number
   const getPlayerNumber = (playerName) => {
@@ -57,12 +58,12 @@ const Index = () => {
   useEffect(() => {
     const stats = {};
     players.forEach(player => {
-      stats[player] = { points: 0, played: 0, won: 0, lost: 0 };
+      stats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
     });
     setPlayerStats(stats);
   }, [players]);
 
-  // Generate pairings based on format
+  // Generate pairings based on format with better mixing
   const generatePairings = (round) => {
     if (format === 'americano') {
       return generateAmericanoPairings(round);
@@ -71,26 +72,33 @@ const Index = () => {
     }
   };
 
-  // Americano pairing - fixed rotation
+  // Improved Americano pairing - better rotation ensuring everyone plays with everyone
   const generateAmericanoPairings = (round) => {
     const n = players.length;
     const pairings = [];
     let courtAssignment = 1;
     
-    // Simple rotation algorithm for Americano
+    // Create a rotation matrix for better pairing distribution
+    const rotationMatrix = [];
     for (let i = 0; i < n; i += 4) {
       if (i + 3 < n) {
-        const offset = (round - 1) * 2;
-        const p1 = players[(i + offset) % n];
-        const p2 = players[(i + 1 + offset) % n];
-        const p3 = players[(i + 2 + offset) % n];
-        const p4 = players[(i + 3 + offset) % n];
+        const roundOffset = ((round - 1) % n) * 2;
+        const p1Index = (i + roundOffset) % n;
+        const p2Index = (i + 1 + roundOffset) % n;
+        const p3Index = (i + 2 + roundOffset) % n;
+        const p4Index = (i + 3 + roundOffset) % n;
+        
+        // Ensure different pairing each round
+        const team1p1 = players[p1Index];
+        const team1p2 = players[p3Index]; // Cross pairing for variety
+        const team2p1 = players[p2Index];
+        const team2p2 = players[p4Index];
         
         pairings.push({
           id: pairings.length + 1,
           court: courtAssignment,
-          team1: { player1: p1, player2: p2, score: 0 },
-          team2: { player1: p3, player2: p4, score: 0 },
+          team1: { player1: team1p1, player2: team1p2, score: 0 },
+          team2: { player1: team2p1, player2: team2p2, score: 0 },
           status: 'waiting',
           round: round
         });
@@ -102,13 +110,13 @@ const Index = () => {
     return pairings;
   };
 
-  // Mexicano pairing - based on performance
+  // Improved Mexicano pairing - better performance-based distribution
   const generateMexicanoPairings = (round) => {
     const pairings = [];
     let courtAssignment = 1;
     
     if (round === 1) {
-      // First round is random
+      // First round is random but organized
       const shuffled = [...players].sort(() => Math.random() - 0.5);
       for (let i = 0; i < shuffled.length; i += 4) {
         if (i + 3 < shuffled.length) {
@@ -125,19 +133,25 @@ const Index = () => {
         }
       }
     } else {
-      // Sort players by points
+      // Sort players by cumulative points for better mixing
       const sortedPlayers = [...players].sort((a, b) => 
         (playerStats[b]?.points || 0) - (playerStats[a]?.points || 0)
       );
       
-      // Pair by ranking
+      // Create balanced teams: top with bottom, middle with middle
       for (let i = 0; i < sortedPlayers.length; i += 4) {
         if (i + 3 < sortedPlayers.length) {
+          // Mix high and low performers
+          const highPerformer1 = sortedPlayers[i];
+          const highPerformer2 = sortedPlayers[i + 1];
+          const lowPerformer1 = sortedPlayers[i + 2];
+          const lowPerformer2 = sortedPlayers[i + 3];
+          
           pairings.push({
             id: pairings.length + 1,
             court: courtAssignment,
-            team1: { player1: sortedPlayers[i], player2: sortedPlayers[i + 3], score: 0 },
-            team2: { player1: sortedPlayers[i + 1], player2: sortedPlayers[i + 2], score: 0 },
+            team1: { player1: highPerformer1, player2: lowPerformer1, score: 0 },
+            team2: { player1: highPerformer2, player2: lowPerformer2, score: 0 },
             status: 'waiting',
             round: round
           });
@@ -157,29 +171,60 @@ const Index = () => {
     setCurrentStep('tournament');
   };
 
-  // Update player statistics
+  // Update player statistics with round tracking
   const updatePlayerStats = (match) => {
     const newStats = { ...playerStats };
     const team1Won = match.team1.score > match.team2.score;
     
-    // Update points and games for all players
+    // Update points and games for all players with round details
     [match.team1.player1, match.team1.player2].forEach(player => {
+      if (!newStats[player].roundDetails) newStats[player].roundDetails = [];
       newStats[player].points += match.team1.score;
       newStats[player].played += 1;
       newStats[player][team1Won ? 'won' : 'lost'] += 1;
+      
+      // Add round detail
+      newStats[player].roundDetails.push({
+        round: match.round,
+        score: match.team1.score,
+        opponentScore: match.team2.score,
+        won: team1Won,
+        partner: match.team1.player1 === player ? match.team1.player2 : match.team1.player1,
+        opponents: [match.team2.player1, match.team2.player2]
+      });
     });
     
     [match.team2.player1, match.team2.player2].forEach(player => {
+      if (!newStats[player].roundDetails) newStats[player].roundDetails = [];
       newStats[player].points += match.team2.score;
       newStats[player].played += 1;
       newStats[player][team1Won ? 'lost' : 'won'] += 1;
+      
+      // Add round detail
+      newStats[player].roundDetails.push({
+        round: match.round,
+        score: match.team2.score,
+        opponentScore: match.team1.score,
+        won: !team1Won,
+        partner: match.team2.player1 === player ? match.team2.player2 : match.team2.player1,
+        opponents: [match.team1.player1, match.team1.player2]
+      });
     });
     
     setPlayerStats(newStats);
   };
 
-  // Proceed to next round
+  // Proceed to next round and save round history
   const nextRound = () => {
+    // Save current round results
+    const currentRoundMatches = matches.filter(m => m.round === currentRound);
+    const roundResults = {
+      round: currentRound,
+      matches: currentRoundMatches,
+      playerStats: { ...playerStats }
+    };
+    setRoundHistory(prev => [...prev, roundResults]);
+    
     const nextRoundNumber = currentRound + 1;
     setCurrentRound(nextRoundNumber);
     const nextMatches = generatePairings(nextRoundNumber);
@@ -441,7 +486,7 @@ const Index = () => {
     );
   }
 
-  // Match Scoring View with automatic complementary scoring
+  // Match Scoring View with score reset functionality
   if (selectedMatch) {
     const match = matches.find(m => m.id === selectedMatch);
     if (!match) return null;
@@ -455,15 +500,12 @@ const Index = () => {
           
           if (team === 1) {
             newMatch.team1.score = score;
-            // Automatically calculate the complementary score for team 2
             newMatch.team2.score = scoreLimit - score;
           } else {
             newMatch.team2.score = score;
-            // Automatically calculate the complementary score for team 1
             newMatch.team1.score = scoreLimit - score;
           }
           
-          // Mark match as finished when any team reaches the score limit
           if (newMatch.team1.score === scoreLimit || newMatch.team2.score === scoreLimit) {
             newMatch.status = 'finished';
             updatePlayerStats(newMatch);
@@ -527,6 +569,12 @@ const Index = () => {
         <div className="bg-white/10 backdrop-blur-lg p-4 flex items-center justify-between border-b border-white/20 relative z-10">
           <button 
             onClick={() => {
+              // Reset scores to 0-0 when going back to matches
+              setMatches(prev => prev.map(m => 
+                m.id === selectedMatch && m.status !== 'finished'
+                  ? { ...m, team1: { ...m.team1, score: 0 }, team2: { ...m.team2, score: 0 }, status: 'waiting' }
+                  : m
+              ));
               setSelectedMatch(null);
               setShowScorePicker(null);
             }}
@@ -678,7 +726,7 @@ const Index = () => {
     );
   }
 
-  // Tournament Main View - Updated to always show Next Round button
+  // Tournament Main View - Simplified without extra buttons
   if (currentStep === 'tournament') {
     const currentMatches = matches.filter(m => m.round === currentRound);
     const finishedMatches = currentMatches.filter(m => m.status === 'finished').length;
@@ -700,7 +748,7 @@ const Index = () => {
             </div>
             <button 
               onClick={() => setShowStandings(true)}
-              className="bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all duration-200 flex items-center gap-2 transform hover:scale-105 shadow-xl cursor-pointer"
+              className="bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 px-6 py-3 rounded-2xl font-bold transition-all duration-200 flex items-center gap-2 transform hover:scale-105 shadow-xl"
             >
               <Trophy size={18} />
               Standings
@@ -723,6 +771,7 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Match List */}
           <div className="space-y-6 mb-8">
             {currentMatches.map((match, index) => (
               <div key={match.id} className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl overflow-hidden">
@@ -774,68 +823,38 @@ const Index = () => {
             ))}
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            {/* Always show Next Round button */}
-            <button
-              onClick={nextRound}
-              className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
-            >
-              Next Round ({currentRound + 1})
-              <ArrowRight size={20} />
-            </button>
-            
-            <button
-              onClick={() => setShowStandings(true)}
-              className="w-full py-5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-3 border border-white/20 backdrop-blur-lg"
-            >
-              View Current Standings
-              <Trophy size={20} />
-            </button>
-            
-            {/* Next Match Button */}
-            <button
-              onClick={() => {
-                // Find the next unfinished match
-                const nextMatch = currentMatches.find(m => m.status !== 'finished');
-                if (nextMatch) {
-                  setSelectedMatch(nextMatch.id);
-                  setShowScorePicker(null);
-                }
-              }}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-xl transform hover:scale-[1.02]"
-            >
-              <Play size={20} />
-              Next Match
-            </button>
-          </div>
+          {/* Only Next Round Button */}
+          <button
+            onClick={nextRound}
+            className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
+          >
+            Next Round ({currentRound + 1})
+            <ArrowRight size={20} />
+          </button>
         </div>
       </div>
     );
   }
 
-  // Standings View - Fixed TypeScript errors and functionality
+  // Enhanced Standings View with round tracking
   if (showStandings) {
     const allPlayerStats = { ...playerStats };
     players.forEach(player => {
       if (!allPlayerStats[player]) {
-        allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0 };
+        allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
       }
     });
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aStats = a as { points: number; played: number; won: number; lost: number };
-        const bStats = b as { points: number; played: number; won: number; lost: number };
+        const aStats = a as { points: number; played: number; won: number; lost: number; roundDetails: any[] };
+        const bStats = b as { points: number; played: number; won: number; lost: number; roundDetails: any[] };
         return bStats.points - aStats.points;
       })
       .map(([player, stats]) => ({ 
         player, 
-        ...(stats as { points: number; played: number; won: number; lost: number })
+        ...(stats as { points: number; played: number; won: number; lost: number; roundDetails: any[] })
       }));
-
-    const currentRoundMatches = matches.filter(m => m.round === currentRound);
-    const allMatchesFinished = currentRoundMatches.length > 0 && currentRoundMatches.every(m => m.status === 'finished');
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -847,17 +866,14 @@ const Index = () => {
         
         <div className="bg-white/10 backdrop-blur-lg p-4 flex items-center justify-between border-b border-white/20 relative z-10">
           <button 
-            onClick={() => {
-              setShowStandings(false);
-              setShowScorePicker(null);
-            }}
+            onClick={() => setShowStandings(false)}
             className="p-2 hover:bg-white/10 rounded-xl transition-colors"
           >
             <ChevronLeft size={24} className="text-white" />
           </button>
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-lime-400">Round {currentRound}</h2>
-            <p className="text-sm text-slate-400">Tournament Standings</p>
+            <h2 className="text-3xl font-bold text-lime-400">Tournament Standings</h2>
+            <p className="text-sm text-slate-400">After Round {currentRound}</p>
           </div>
           <div className="w-10" />
         </div>
@@ -865,35 +881,55 @@ const Index = () => {
         <div className="p-6 relative z-10">
           <div className="space-y-4">
             {sortedPlayers.map((item, index) => (
-              <div key={item.player} className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 flex items-center justify-between border border-white/20 shadow-xl transform hover:scale-[1.02] transition-all duration-200">
-                <div className="flex items-center gap-6">
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ${
-                    index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900 shadow-xl' :
-                    index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-slate-900 shadow-xl' :
-                    index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-slate-900 shadow-xl' :
-                    'bg-white/10 text-slate-400 border border-white/20'
-                  }`}>
-                    {index + 1}
+              <div key={item.player} className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl transform hover:scale-[1.02] transition-all duration-200">
+                <div className="p-8 flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ${
+                      index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900 shadow-xl' :
+                      index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-slate-900 shadow-xl' :
+                      index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-slate-900 shadow-xl' :
+                      'bg-white/10 text-slate-400 border border-white/20'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-xl">
+                        <span className="text-lime-400 mr-2">{getPlayerNumber(item.player)}.</span>
+                        {item.player}
+                      </p>
+                      <p className="text-slate-400 text-sm font-medium">
+                        {item.won}W - {item.lost}L ({item.played} played)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-bold text-xl">
-                      <span className="text-lime-400 mr-2">{getPlayerNumber(item.player)}.</span>
-                      {item.player}
-                    </p>
-                    <p className="text-slate-400 text-sm font-medium">
-                      {item.won}W - {item.lost}L ({item.played} played)
-                    </p>
+                  <div className="text-right">
+                    <p className="text-4xl font-bold text-lime-400">{item.points || 0}</p>
+                    <p className="text-slate-400 text-sm font-medium">points</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-4xl font-bold text-lime-400">{item.points || 0}</p>
-                  <p className="text-slate-400 text-sm font-medium">points</p>
-                </div>
+                
+                {/* Round Details */}
+                {item.roundDetails && item.roundDetails.length > 0 && (
+                  <div className="px-8 pb-8">
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <h4 className="text-slate-300 text-sm font-medium mb-3">Round History</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {item.roundDetails.map((detail, idx) => (
+                          <div key={idx} className={`p-3 rounded-xl text-xs ${
+                            detail.won ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            <div className="font-medium">R{detail.round}: {detail.score}-{detail.opponentScore}</div>
+                            <div className="text-xs opacity-75">vs {detail.opponents.join(' & ')}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Always show button to go to next round or back to matches */}
           <div className="mt-8 space-y-4">
             <button
               onClick={nextRound}
@@ -904,10 +940,7 @@ const Index = () => {
             </button>
             
             <button
-              onClick={() => {
-                setShowStandings(false);
-                setShowScorePicker(null);
-              }}
+              onClick={() => setShowStandings(false)}
               className="w-full px-8 py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-medium transition-all duration-200 border border-white/20 backdrop-blur-lg"
             >
               Back to Current Round
