@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChevronLeft, X, Check } from 'lucide-react';
 import { Match } from '../types/tournament';
@@ -57,6 +56,12 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
       return m;
     }));
     setShowScorePicker(null);
+  };
+
+  const handleFinishMatch = (match: Match) => {
+    finishMatch(match);
+    // Automatically navigate back to tournament main view
+    setSelectedMatch(null);
   };
 
   const NumberGrid = ({ team }: { team: number }) => {
@@ -221,7 +226,7 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
               
               {/* Finish Match Button */}
               <button 
-                onClick={() => finishMatch(match)}
+                onClick={() => handleFinishMatch(match)}
                 className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
               >
                 <Check size={20} />
@@ -233,7 +238,7 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
           {match.status === 'waiting' && (match.team1.score > 0 || match.team2.score > 0) && (
             <div className="text-center mb-6">
               <button 
-                onClick={() => finishMatch(match)}
+                onClick={() => handleFinishMatch(match)}
                 className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
               >
                 <Check size={20} />
