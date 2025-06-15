@@ -214,6 +214,19 @@ const Index = () => {
     setPlayerStats(newStats);
   };
 
+  // Finish match function
+  const finishMatch = (match) => {
+    const updatedMatch = { ...match, status: 'finished' };
+    updatePlayerStats(updatedMatch);
+    
+    setMatches(prev => prev.map(m => 
+      m.id === selectedMatch ? updatedMatch : m
+    ));
+    
+    setSelectedMatch(null);
+    setShowScorePicker(null);
+  };
+
   // Proceed to next round and save round history
   const nextRound = () => {
     // Save current round results
@@ -486,7 +499,7 @@ const Index = () => {
     );
   }
 
-  // Match Scoring View with score reset functionality
+  // Match Scoring View with finish match functionality
   if (selectedMatch) {
     const match = matches.find(m => m.id === selectedMatch);
     if (!match) return null;
@@ -506,10 +519,7 @@ const Index = () => {
             newMatch.team1.score = scoreLimit - score;
           }
           
-          if (newMatch.team1.score === scoreLimit || newMatch.team2.score === scoreLimit) {
-            newMatch.status = 'finished';
-            updatePlayerStats(newMatch);
-          } else if (newMatch.status === 'waiting' && (newMatch.team1.score > 0 || newMatch.team2.score > 0)) {
+          if (newMatch.status === 'waiting' && (newMatch.team1.score > 0 || newMatch.team2.score > 0)) {
             newMatch.status = 'playing';
           }
           
@@ -569,12 +579,6 @@ const Index = () => {
         <div className="bg-white/10 backdrop-blur-lg p-4 flex items-center justify-between border-b border-white/20 relative z-10">
           <button 
             onClick={() => {
-              // Reset scores to 0-0 when going back to matches
-              setMatches(prev => prev.map(m => 
-                m.id === selectedMatch && m.status !== 'finished'
-                  ? { ...m, team1: { ...m.team1, score: 0 }, team2: { ...m.team2, score: 0 }, status: 'waiting' }
-                  : m
-              ));
               setSelectedMatch(null);
               setShowScorePicker(null);
             }}
@@ -588,20 +592,15 @@ const Index = () => {
           </div>
           <button 
             onClick={() => {
-              if (match.status === 'finished') {
-                setSelectedMatch(null);
-                setShowScorePicker(null);
-              } else {
-                setMatches(prev => prev.map(m => 
-                  m.id === selectedMatch 
-                    ? { ...m, team1: { ...m.team1, score: 0 }, team2: { ...m.team2, score: 0 }, status: 'waiting' }
-                    : m
-                ));
-              }
+              setMatches(prev => prev.map(m => 
+                m.id === selectedMatch 
+                  ? { ...m, team1: { ...m.team1, score: 0 }, team2: { ...m.team2, score: 0 }, status: 'waiting' }
+                  : m
+              ));
             }}
             className="p-2 hover:bg-white/10 rounded-xl transition-colors"
           >
-            {match.status === 'finished' ? <Check size={24} className="text-lime-400" /> : <span className="text-sm font-medium text-slate-400">Reset</span>}
+            <span className="text-sm font-medium text-slate-400">Reset</span>
           </button>
         </div>
 
@@ -683,13 +682,34 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Status Display */}
+            {/* Status Display and Action Buttons */}
             {match.status === 'playing' && (
               <div className="text-center mb-6">
-                <span className="inline-flex items-center gap-3 px-8 py-4 bg-lime-400/10 backdrop-blur-lg text-lime-400 rounded-full text-sm font-medium border border-lime-400/20">
+                <span className="inline-flex items-center gap-3 px-8 py-4 bg-lime-400/10 backdrop-blur-lg text-lime-400 rounded-full text-sm font-medium border border-lime-400/20 mb-6">
                   <span className="w-3 h-3 bg-lime-400 rounded-full animate-pulse"></span>
                   Match in Progress
                 </span>
+                
+                {/* Finish Match Button */}
+                <button 
+                  onClick={() => finishMatch(match)}
+                  className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
+                >
+                  <Check size={20} />
+                  Finish Match
+                </button>
+              </div>
+            )}
+
+            {match.status === 'waiting' && (match.team1.score > 0 || match.team2.score > 0) && (
+              <div className="text-center mb-6">
+                <button 
+                  onClick={() => finishMatch(match)}
+                  className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
+                >
+                  <Check size={20} />
+                  Finish Match
+                </button>
               </div>
             )}
 
@@ -847,13 +867,13 @@ const Index = () => {
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aStats = a as { points: number; played: number; won: number; lost: number; roundDetails: any[] };
-        const bStats = b as { points: number; played: number; won: number; lost: number; roundDetails: any[] };
+        const aStats = a;
+        const bStats = b;
         return bStats.points - aStats.points;
       })
       .map(([player, stats]) => ({ 
         player, 
-        ...(stats as { points: number; played: number; won: number; lost: number; roundDetails: any[] })
+        ...stats
       }));
 
     return (
