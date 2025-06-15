@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { ChevronLeft, X, Check } from 'lucide-react';
 import { Match } from '../types/tournament';
@@ -38,19 +37,17 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
     if (match && match.status === 'finished') {
       // Find next waiting or playing match in current round
       const nextMatch = currentRoundMatches.find(m => 
-        m.id !== selectedMatch && (m.status === 'waiting' || m.status === 'playing')
+        m.status === 'waiting' || m.status === 'playing'
       );
       
       if (nextMatch) {
         setSelectedMatch(nextMatch.id);
-        setShowScorePicker(null); // Reset score picker when navigating
       } else {
         // No more matches to play, go back to main view
         setSelectedMatch(null);
-        setShowScorePicker(null);
       }
     }
-  }, [match, currentRoundMatches, setSelectedMatch, selectedMatch, setShowScorePicker]);
+  }, [match, currentRoundMatches, setSelectedMatch]);
 
   if (!match) return null;
 
@@ -81,21 +78,6 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
   const handleFinishMatch = (match: Match) => {
     finishMatch(match);
     // Auto-navigation will be handled by useEffect
-  };
-
-  const handleNextMatch = () => {
-    const nextMatch = currentRoundMatches.find(m => 
-      m.id !== selectedMatch && (m.status === 'waiting' || m.status === 'playing')
-    );
-    
-    if (nextMatch) {
-      setSelectedMatch(nextMatch.id);
-      setShowScorePicker(null);
-    } else {
-      // No more matches, go back to main view
-      setSelectedMatch(null);
-      setShowScorePicker(null);
-    }
   };
 
   const NumberGrid = ({ team }: { team: number }) => {
@@ -135,12 +117,6 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
       </div>
     );
   };
-
-  // Find current match index for navigation
-  const currentMatchIndex = currentRoundMatches.findIndex(m => m.id === selectedMatch);
-  const hasNextMatch = currentRoundMatches.some(m => 
-    m.id !== selectedMatch && (m.status === 'waiting' || m.status === 'playing')
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
@@ -256,48 +232,36 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            {/* Status Display and Finish Match Button */}
-            {match.status === 'playing' && (
-              <div className="text-center">
-                <span className="inline-flex items-center gap-3 px-8 py-4 bg-lime-400/10 backdrop-blur-lg text-lime-400 rounded-full text-sm font-medium border border-lime-400/20 mb-6">
-                  <span className="w-3 h-3 bg-lime-400 rounded-full animate-pulse"></span>
-                  Match in Progress
-                </span>
-                
-                <button 
-                  onClick={() => handleFinishMatch(match)}
-                  className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
-                >
-                  <Check size={20} />
-                  Finish Match
-                </button>
-              </div>
-            )}
-
-            {match.status === 'waiting' && (match.team1.score > 0 || match.team2.score > 0) && (
-              <div className="text-center">
-                <button 
-                  onClick={() => handleFinishMatch(match)}
-                  className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
-                >
-                  <Check size={20} />
-                  Finish Match
-                </button>
-              </div>
-            )}
-
-            {/* Next Match Button */}
-            {hasNextMatch && (
+          {/* Status Display and Action Buttons */}
+          {match.status === 'playing' && (
+            <div className="text-center mb-6">
+              <span className="inline-flex items-center gap-3 px-8 py-4 bg-lime-400/10 backdrop-blur-lg text-lime-400 rounded-full text-sm font-medium border border-lime-400/20 mb-6">
+                <span className="w-3 h-3 bg-lime-400 rounded-full animate-pulse"></span>
+                Match in Progress
+              </span>
+              
+              {/* Finish Match Button */}
               <button 
-                onClick={handleNextMatch}
-                className="w-full px-10 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
+                onClick={() => handleFinishMatch(match)}
+                className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
               >
-                Next Match
+                <Check size={20} />
+                Finish Match
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
+          {match.status === 'waiting' && (match.team1.score > 0 || match.team2.score > 0) && (
+            <div className="text-center mb-6">
+              <button 
+                onClick={() => handleFinishMatch(match)}
+                className="w-full px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl flex items-center justify-center gap-3"
+              >
+                <Check size={20} />
+                Finish Match
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
