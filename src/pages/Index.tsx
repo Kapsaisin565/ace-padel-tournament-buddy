@@ -867,13 +867,13 @@ const Index = () => {
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aStats = a;
-        const bStats = b;
-        return bStats.points - aStats.points;
+        const aPoints = (a as any)?.points || 0;
+        const bPoints = (b as any)?.points || 0;
+        return bPoints - aPoints;
       })
       .map(([player, stats]) => ({ 
         player, 
-        ...stats
+        ...(stats as any)
       }));
 
     return (
