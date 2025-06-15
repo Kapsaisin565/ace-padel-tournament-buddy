@@ -653,7 +653,6 @@ const Index = () => {
                   <button
                     onClick={() => setShowScorePicker(1)}
                     className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-3xl w-40 h-32 flex items-center justify-center transition-all duration-200 shadow-2xl transform hover:scale-105"
-                    disabled={match.status === 'finished'}
                   >
                     <span className="text-8xl font-bold">{match.team1.score}</span>
                   </button>
@@ -674,7 +673,6 @@ const Index = () => {
                   <button
                     onClick={() => setShowScorePicker(2)}
                     className="bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-3xl w-40 h-32 flex items-center justify-center transition-all duration-200 shadow-2xl transform hover:scale-105"
-                    disabled={match.status === 'finished'}
                   >
                     <span className="text-8xl font-bold">{match.team2.score}</span>
                   </button>
@@ -709,31 +707,6 @@ const Index = () => {
                 >
                   <Check size={20} />
                   Finish Match
-                </button>
-              </div>
-            )}
-
-            {match.status === 'finished' && (
-              <div className="text-center bg-white/10 backdrop-blur-lg rounded-3xl p-10 border border-white/20 shadow-2xl">
-                <div className="w-20 h-20 bg-gradient-to-r from-lime-400 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Trophy className="w-10 h-10 text-slate-900" />
-                </div>
-                <p className="text-3xl font-bold mb-3 text-white">
-                  {match.team1.score > match.team2.score ? 
-                    `${match.team1.player1} & ${match.team1.player2}` : 
-                    `${match.team2.player1} & ${match.team2.player2}`} Win!
-                </p>
-                <p className="text-slate-400 mb-8 text-lg">
-                  Final Score: {match.team1.score} - {match.team2.score}
-                </p>
-                <button 
-                  onClick={() => {
-                    setSelectedMatch(null);
-                    setShowScorePicker(null);
-                  }}
-                  className="px-10 py-4 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 shadow-xl"
-                >
-                  Back to Matches
                 </button>
               </div>
             )}
@@ -867,13 +840,13 @@ const Index = () => {
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aPoints = (a as any)?.points || 0;
-        const bPoints = (b as any)?.points || 0;
+        const aPoints = (a)?.points || 0;
+        const bPoints = (b)?.points || 0;
         return bPoints - aPoints;
       })
       .map(([player, stats]) => ({ 
         player, 
-        ...(stats as any)
+        ...stats
       }));
 
     return (
