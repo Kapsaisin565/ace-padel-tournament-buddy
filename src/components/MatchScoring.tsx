@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ChevronLeft, X, Check } from 'lucide-react';
 import { Match } from '../types/tournament';
 import PadelIcon from './PadelIcon';
@@ -30,9 +30,26 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
   finishMatch
 }) => {
   const match = matches.find(m => m.id === selectedMatch);
-  if (!match) return null;
-
   const currentRoundMatches = matches.filter(m => m.round === currentRound);
+  
+  // Auto-navigate to next available match when current match is finished
+  useEffect(() => {
+    if (match && match.status === 'finished') {
+      // Find next waiting or playing match in current round
+      const nextMatch = currentRoundMatches.find(m => 
+        m.status === 'waiting' || m.status === 'playing'
+      );
+      
+      if (nextMatch) {
+        setSelectedMatch(nextMatch.id);
+      } else {
+        // No more matches to play, go back to main view
+        setSelectedMatch(null);
+      }
+    }
+  }, [match, currentRoundMatches, setSelectedMatch]);
+
+  if (!match) return null;
 
   const setScore = (team: number, score: number) => {
     setMatches(matches.map(m => {
@@ -60,8 +77,7 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
 
   const handleFinishMatch = (match: Match) => {
     finishMatch(match);
-    // Automatically navigate back to tournament main view
-    setSelectedMatch(null);
+    // Auto-navigation will be handled by useEffect
   };
 
   const NumberGrid = ({ team }: { team: number }) => {
