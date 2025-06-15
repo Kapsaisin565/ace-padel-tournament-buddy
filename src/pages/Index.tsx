@@ -63,6 +63,40 @@ const Index = () => {
     setPlayerStats(stats);
   }, [players]);
 
+  // Enhanced function to get current standings for Mexicano pairing
+  const getCurrentStandings = () => {
+    const allPlayerStats = { ...playerStats };
+    players.forEach(player => {
+      if (!allPlayerStats[player]) {
+        allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
+      }
+    });
+
+    return Object.entries(allPlayerStats)
+      .sort(([,a], [,b]) => {
+        const aStats = a as { points?: number; won?: number; played?: number };
+        const bStats = b as { points?: number; won?: number; played?: number };
+        
+        // Primary sort: total points
+        const aPoints = aStats?.points || 0;
+        const bPoints = bStats?.points || 0;
+        if (bPoints !== aPoints) return bPoints - aPoints;
+        
+        // Secondary sort: win percentage
+        const aWinRate = (aStats?.played || 0) > 0 ? (aStats?.won || 0) / (aStats?.played || 0) : 0;
+        const bWinRate = (bStats?.played || 0) > 0 ? (bStats?.won || 0) / (bStats?.played || 0) : 0;
+        if (bWinRate !== aWinRate) return bWinRate - aWinRate;
+        
+        // Tertiary sort: games played (more games = lower rank if tied)
+        return (aStats?.played || 0) - (bStats?.played || 0);
+      })
+      .map(([player, stats], index) => ({ 
+        player,
+        rank: index + 1,
+        ...(stats as { points: number; played: number; won: number; lost: number; roundDetails: any[] })
+      }));
+  };
+
   // Generate pairings based on format with better mixing
   const generatePairings = (round) => {
     if (format === 'americano') {
@@ -133,25 +167,24 @@ const Index = () => {
         }
       }
     } else {
-      // Sort players by cumulative points for better mixing
-      const sortedPlayers = [...players].sort((a, b) => 
-        (playerStats[b]?.points || 0) - (playerStats[a]?.points || 0)
-      );
+      // Use current standings for better pairing
+      const standings = getCurrentStandings();
+      const rankedPlayers = standings.map(s => s.player);
       
-      // Create balanced teams: top with bottom, middle with middle
-      for (let i = 0; i < sortedPlayers.length; i += 4) {
-        if (i + 3 < sortedPlayers.length) {
-          // Mix high and low performers
-          const highPerformer1 = sortedPlayers[i];
-          const highPerformer2 = sortedPlayers[i + 1];
-          const lowPerformer1 = sortedPlayers[i + 2];
-          const lowPerformer2 = sortedPlayers[i + 3];
+      // Create balanced teams based on current rankings
+      for (let i = 0; i < rankedPlayers.length; i += 4) {
+        if (i + 3 < rankedPlayers.length) {
+          // Mix rankings: 1st + 4th vs 2nd + 3rd pattern
+          const topPlayer = rankedPlayers[i];
+          const secondPlayer = rankedPlayers[i + 1];
+          const thirdPlayer = rankedPlayers[i + 2];
+          const bottomPlayer = rankedPlayers[i + 3];
           
           pairings.push({
             id: pairings.length + 1,
             court: courtAssignment,
-            team1: { player1: highPerformer1, player2: lowPerformer1, score: 0 },
-            team2: { player1: highPerformer2, player2: lowPerformer2, score: 0 },
+            team1: { player1: topPlayer, player2: bottomPlayer, score: 0 },
+            team2: { player1: secondPlayer, player2: thirdPlayer, score: 0 },
             status: 'waiting',
             round: round
           });
@@ -829,27 +862,9 @@ const Index = () => {
     );
   }
 
-  // Enhanced Standings View with round tracking
+  // Enhanced Standings View with better tracking for Mexicano
   if (showStandings) {
-    const allPlayerStats = { ...playerStats };
-    players.forEach(player => {
-      if (!allPlayerStats[player]) {
-        allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
-      }
-    });
-
-    const sortedPlayers = Object.entries(allPlayerStats)
-      .sort(([,a], [,b]) => {
-        const aStats = a as { points?: number };
-        const bStats = b as { points?: number };
-        const aPoints = aStats?.points || 0;
-        const bPoints = bStats?.points || 0;
-        return bPoints - aPoints;
-      })
-      .map(([player, stats]) => ({ 
-        player, 
-        ...(stats as { points: number; played: number; won: number; lost: number; roundDetails: any[] })
-      }));
+    const standings = getCurrentStandings();
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -868,14 +883,43 @@ const Index = () => {
           </button>
           <div className="text-center">
             <h2 className="text-3xl font-bold text-lime-400">Tournament Standings</h2>
-            <p className="text-sm text-slate-400">After Round {currentRound}</p>
+            <p className="text-sm text-slate-400">After Round {currentRound} • {format.charAt(0).toUpperCase() + format.slice(1)} Format</p>
           </div>
           <div className="w-10" />
         </div>
 
         <div className="p-6 relative z-10">
+          {/* Rankings Summary for Mexicano */}
+          {format === 'mexicano' && (
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 shadow-xl">
+              <h3 className="text-lg font-bold text-lime-400 mb-4">Performance Tiers</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-300 font-medium mb-2">Top Performers:</p>
+                  <div className="space-y-1">
+                    {standings.slice(0, Math.ceil(standings.length / 2)).map((player, idx) => (
+                      <p key={player.player} className="text-lime-400">
+                        {idx + 1}. {player.player} ({player.points} pts)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-slate-300 font-medium mb-2">Bottom Half:</p>
+                  <div className="space-y-1">
+                    {standings.slice(Math.ceil(standings.length / 2)).map((player, idx) => (
+                      <p key={player.player} className="text-slate-400">
+                        {Math.ceil(standings.length / 2) + idx + 1}. {player.player} ({player.points} pts)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
-            {sortedPlayers.map((item, index) => (
+            {standings.map((item, index) => (
               <div key={item.player} className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl transform hover:scale-[1.02] transition-all duration-200">
                 <div className="p-8 flex items-center justify-between">
                   <div className="flex items-center gap-6">
@@ -885,16 +929,24 @@ const Index = () => {
                       index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-slate-900 shadow-xl' :
                       'bg-white/10 text-slate-400 border border-white/20'
                     }`}>
-                      {index + 1}
+                      {item.rank}
                     </div>
                     <div>
                       <p className="text-white font-bold text-xl">
                         <span className="text-lime-400 mr-2">{getPlayerNumber(item.player)}.</span>
                         {item.player}
                       </p>
-                      <p className="text-slate-400 text-sm font-medium">
-                        {item.won}W - {item.lost}L ({item.played} played)
-                      </p>
+                      <div className="flex gap-4 text-slate-400 text-sm font-medium">
+                        <span>{item.won}W - {item.lost}L</span>
+                        <span>•</span>
+                        <span>{item.played} played</span>
+                        {item.played > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{((item.won / item.played) * 100).toFixed(0)}% win rate</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -931,6 +983,7 @@ const Index = () => {
               className="w-full py-5 bg-gradient-to-r from-lime-400 to-green-500 hover:from-lime-500 hover:to-green-600 text-slate-900 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-2xl transform hover:scale-[1.02]"
             >
               Start Round {currentRound + 1}
+              {format === 'mexicano' && <span className="text-sm opacity-75">(Mexicano Pairing)</span>}
               <ArrowRight size={20} />
             </button>
             
