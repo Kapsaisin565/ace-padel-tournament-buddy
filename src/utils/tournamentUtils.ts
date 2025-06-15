@@ -132,11 +132,11 @@ const generateMexicanoPairings = (
             team2p1 = players[i + 2];
             team2p2 = players[i + 3];
             break;
-          case 1: // Round 2 pattern: (0,2) vs (1,3) - this gives us the c&b vs d&a pattern
-            team1p1 = players[i + 2]; // c
-            team1p2 = players[i + 1]; // b  
-            team2p1 = players[i + 3]; // d
-            team2p2 = players[i]; // a
+          case 1: // Round 2 pattern: (2,0) vs (1,3) - fixed to get h & n vs b & m
+            team1p1 = players[i + 2]; // h (3rd player)
+            team1p2 = players[i]; // n (1st player)  
+            team2p1 = players[i + 1]; // b (2nd player)
+            team2p2 = players[i + 3]; // m (4th player)
             break;
           case 2: // Round 3 pattern: (0,3) vs (1,2)
             team1p1 = players[i];
