@@ -732,7 +732,7 @@ const Index = () => {
           <div className="absolute bottom-10 left-10 w-40 h-40 bg-purple-400/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
         
-        <div className="bg-white/10 backdrop-blur-lg p-4 border-b border-white/20 relative z-10">
+        <div className="bg-white/10 backdrop-blur-lg p-4 flex items-center justify-between border-b border-white/20 relative z-10">
           <div className="flex justify-between items-center">
             <div className="w-24"></div>
             <div className="text-center flex-1">
@@ -840,8 +840,8 @@ const Index = () => {
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aPoints = (a)?.points || 0;
-        const bPoints = (b)?.points || 0;
+        const aPoints = a?.points || 0;
+        const bPoints = b?.points || 0;
         return bPoints - aPoints;
       })
       .map(([player, stats]) => ({ 
