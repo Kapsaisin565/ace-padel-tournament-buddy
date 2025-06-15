@@ -840,13 +840,15 @@ const Index = () => {
 
     const sortedPlayers = Object.entries(allPlayerStats)
       .sort(([,a], [,b]) => {
-        const aPoints = a?.points || 0;
-        const bPoints = b?.points || 0;
+        const aStats = a as { points?: number };
+        const bStats = b as { points?: number };
+        const aPoints = aStats?.points || 0;
+        const bPoints = bStats?.points || 0;
         return bPoints - aPoints;
       })
       .map(([player, stats]) => ({ 
         player, 
-        ...stats
+        ...(stats as { points: number; played: number; won: number; lost: number; roundDetails: any[] })
       }));
 
     return (
