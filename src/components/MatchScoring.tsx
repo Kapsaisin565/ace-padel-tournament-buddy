@@ -116,8 +116,10 @@ const MatchScoring: React.FC<MatchScoringProps> = ({
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-lime-400">Round {currentRound}</h2>
-          <p className="text-sm text-slate-400">{tournamentName}</p>
+          <h2 className="text-2xl font-bold text-lime-400">
+            {match.team1.player1} & {match.team1.player2} vs {match.team2.player1} & {match.team2.player2}
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">Round {currentRound} • {tournamentName}</p>
         </div>
         <button 
           onClick={() => {
