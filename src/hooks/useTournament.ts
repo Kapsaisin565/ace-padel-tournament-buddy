@@ -26,7 +26,7 @@ export const useTournament = () => {
   useEffect(() => {
     const stats: Record<string, PlayerStats> = {};
     players.forEach(player => {
-      stats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
+      stats[player] = { points: 0, played: 0, won: 0, lost: 0, tied: 0, roundDetails: [] };
     });
     setPlayerStats(stats);
   }, [players]);

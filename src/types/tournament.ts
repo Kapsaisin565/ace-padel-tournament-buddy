@@ -23,6 +23,7 @@ export interface PlayerStats {
   played: number;
   won: number;
   lost: number;
+  tied: number;
   roundDetails: RoundDetail[];
 }
 
@@ -31,6 +32,7 @@ export interface RoundDetail {
   score: number;
   opponentScore: number;
   won: boolean;
+  tied: boolean;
   partner: string;
   opponents: string[];
 }
@@ -42,6 +44,7 @@ export interface PlayerStanding {
   played: number;
   won: number;
   lost: number;
+  tied: number;
   roundDetails: RoundDetail[];
 }
 

@@ -9,7 +9,7 @@ export const getCurrentStandings = (playerStats: Record<string, PlayerStats>, pl
   const allPlayerStats = { ...playerStats };
   players.forEach(player => {
     if (!allPlayerStats[player]) {
-      allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
+      allPlayerStats[player] = { points: 0, played: 0, won: 0, lost: 0, tied: 0, roundDetails: [] };
     }
   });
 
@@ -148,23 +148,30 @@ const generateMexicanoPairings = (
 export const updatePlayerStats = (match: Match, playerStats: Record<string, PlayerStats>): Record<string, PlayerStats> => {
   const newStats = { ...playerStats };
   const team1Won = match.team1.score > match.team2.score;
+  const isTie = match.team1.score === match.team2.score;
   
   // Update points and games for all players with round details
   [match.team1.player1, match.team1.player2].forEach(player => {
     if (!newStats[player]) {
-      newStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
+      newStats[player] = { points: 0, played: 0, won: 0, lost: 0, tied: 0, roundDetails: [] };
     }
     if (!newStats[player].roundDetails) newStats[player].roundDetails = [];
     newStats[player].points += match.team1.score;
     newStats[player].played += 1;
-    newStats[player][team1Won ? 'won' : 'lost'] += 1;
+    
+    if (isTie) {
+      newStats[player].tied += 1;
+    } else {
+      newStats[player][team1Won ? 'won' : 'lost'] += 1;
+    }
     
     // Add round detail
     newStats[player].roundDetails.push({
       round: match.round,
       score: match.team1.score,
       opponentScore: match.team2.score,
-      won: team1Won,
+      won: team1Won && !isTie,
+      tied: isTie,
       partner: match.team1.player1 === player ? match.team1.player2 : match.team1.player1,
       opponents: [match.team2.player1, match.team2.player2]
     });
@@ -172,19 +179,25 @@ export const updatePlayerStats = (match: Match, playerStats: Record<string, Play
   
   [match.team2.player1, match.team2.player2].forEach(player => {
     if (!newStats[player]) {
-      newStats[player] = { points: 0, played: 0, won: 0, lost: 0, roundDetails: [] };
+      newStats[player] = { points: 0, played: 0, won: 0, lost: 0, tied: 0, roundDetails: [] };
     }
     if (!newStats[player].roundDetails) newStats[player].roundDetails = [];
     newStats[player].points += match.team2.score;
     newStats[player].played += 1;
-    newStats[player][team1Won ? 'lost' : 'won'] += 1;
+    
+    if (isTie) {
+      newStats[player].tied += 1;
+    } else {
+      newStats[player][team1Won ? 'lost' : 'won'] += 1;
+    }
     
     // Add round detail
     newStats[player].roundDetails.push({
       round: match.round,
       score: match.team2.score,
       opponentScore: match.team1.score,
-      won: !team1Won,
+      won: !team1Won && !isTie,
+      tied: isTie,
       partner: match.team2.player1 === player ? match.team2.player2 : match.team2.player1,
       opponents: [match.team1.player1, match.team1.player2]
     });
