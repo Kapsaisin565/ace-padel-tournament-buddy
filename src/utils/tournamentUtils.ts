@@ -1,4 +1,3 @@
-
 import { Match, PlayerStats, PlayerStanding, TournamentFormat } from '../types/tournament';
 
 export const getPlayerNumber = (playerName: string, players: string[]): number => {
@@ -115,24 +114,48 @@ const generateMexicanoPairings = (
       }
     }
   } else {
-    // Use current standings for better pairing
-    const standings = getCurrentStandings(playerStats, players);
-    const rankedPlayers = standings.map(s => s.player);
+    // For Mexicano format, create proper rotation where players change partners and opponents
+    // Use a systematic rotation pattern based on round number
+    const n = players.length;
     
-    // Create balanced teams based on current rankings
-    for (let i = 0; i < rankedPlayers.length; i += 4) {
-      if (i + 3 < rankedPlayers.length) {
-        // Mix rankings: 1st + 4th vs 2nd + 3rd pattern
-        const topPlayer = rankedPlayers[i];
-        const secondPlayer = rankedPlayers[i + 1];
-        const thirdPlayer = rankedPlayers[i + 2];
-        const bottomPlayer = rankedPlayers[i + 3];
+    for (let i = 0; i < n; i += 4) {
+      if (i + 3 < n) {
+        // Create rotation based on round - this ensures different partnerships each round
+        const rotationOffset = (round - 1) % 3; // For 4 players, there are 3 possible unique pairings
+        
+        let team1p1, team1p2, team2p1, team2p2;
+        
+        switch (rotationOffset) {
+          case 0: // Round 1 pattern: (0,1) vs (2,3)
+            team1p1 = players[i];
+            team1p2 = players[i + 1];
+            team2p1 = players[i + 2];
+            team2p2 = players[i + 3];
+            break;
+          case 1: // Round 2 pattern: (0,2) vs (1,3) - this gives us the c&b vs d&a pattern
+            team1p1 = players[i + 2]; // c
+            team1p2 = players[i + 1]; // b  
+            team2p1 = players[i + 3]; // d
+            team2p2 = players[i]; // a
+            break;
+          case 2: // Round 3 pattern: (0,3) vs (1,2)
+            team1p1 = players[i];
+            team1p2 = players[i + 3];
+            team2p1 = players[i + 1];
+            team2p2 = players[i + 2];
+            break;
+          default:
+            team1p1 = players[i];
+            team1p2 = players[i + 1];
+            team2p1 = players[i + 2];
+            team2p2 = players[i + 3];
+        }
         
         pairings.push({
           id: pairings.length + 1,
           court: courtAssignment,
-          team1: { player1: topPlayer, player2: bottomPlayer, score: 0 },
-          team2: { player1: secondPlayer, player2: thirdPlayer, score: 0 },
+          team1: { player1: team1p1, player2: team1p2, score: 0 },
+          team2: { player1: team2p1, player2: team2p2, score: 0 },
           status: 'waiting',
           round: round
         });
